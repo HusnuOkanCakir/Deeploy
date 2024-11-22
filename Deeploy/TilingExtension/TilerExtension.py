@@ -459,6 +459,8 @@ class Tiler():
 
         outerVariableConstraints, innerVariableConstraints = self._generateVariableBufferConstraints(
             tilerModel, ctxt, schedule, layerBinding, targetMemoryLevelMapping)
+        
+        # JUNGVI: We need the output of the pattern in the innerVarCst
 
         # SCHEREMO: Construct global buffer constraints
 
@@ -623,8 +625,13 @@ class Tiler():
         def deltaFlow(
                 patternFlow: List[GenericFlowState[TensorMemLevelTuple]]) -> GenericFlowState[TensorMemLevelTuple]:
 
-            initialFlow = patternFlow[0]
-            endFlow = patternFlow[1]
+            # OCAKIR: For a case of multiple nodes in a pattern, start merging from down to up.
+            if len(patternFlow) > 2:
+                initialFlow = patternFlow[-2]
+                endFlow = patternFlow[-1]
+            else:
+                initialFlow = patternFlow[0]
+                endFlow = patternFlow[1]
 
             # SCHEREMO: The genset and killset of the innerflow are correct; however, since we now pass the initialliveset of the pattern to the constraint flow. we need to remove bypassed tensors
             mergedLiveSet = initialFlow.liveSet - endFlow.liveSet
@@ -632,6 +639,10 @@ class Tiler():
             mergedKillSet = initialFlow.killSet
 
             mergedFlow = GenericFlowState[TensorMemLevelTuple](mergedLiveSet, mergedKillSet, mergedGenSet)
+
+            # OCAKIR: Keep the unmerged flows at the top (Shouldn't be patternFlow[0]. This is only true for 3 element case. FIXME)
+            if len(patternFlow) > 2:
+                mergedFlow = [patternFlow[0], mergedFlow] #not done
 
             return mergedFlow
 
@@ -641,7 +652,8 @@ class Tiler():
             if (isinstance(value, ctxt.VariableBuffer) and value._users != [])
         }
 
-        producedBuffers = {layer.node.outputs[0].name for layer in layerBinding.values()}
+        # JUNGVI: make sure we take into account pattern, only the outputs of the last node in the pattern is produced (FIXME it's not complete)
+        producedBuffers = {pattern[-1].outputs[0].name for pattern in schedule}
         inputBufferNames = initialLiveBuffers - producedBuffers
         inputBuffers = [ctxt.lookup(name) for name in inputBufferNames]
 
@@ -671,7 +683,15 @@ class Tiler():
             outerPatternMemoryConstraints.addConstraint(dynamicOuterBufferConstraints)
             outerMemConstraints.append(outerPatternMemoryConstraints)
 
-            mergedFlow = [deltaFlow(patternFlow)]
+            # JUNGVI: Temporary! To check!
+            # OCAKIR: Pass multiple times from deltaFlow if we have multiple nodes in a pattern. (For now only valid for 3 elemnt case FIXME)  
+            if len(patternFlow)>2:
+                    mergedFlow1 = deltaFlow(patternFlow)
+                    mergedFlow = [deltaFlow(mergedFlow1)]
+            else:
+                mergedFlow = [deltaFlow(patternFlow)]
+
+            # mergedFlow = [deltaFlow(patternFlow)]#*len(pattern)
 
             for step, innerFlowState in zip(pattern, mergedFlow):
                 transientBufferConstraints = self._generatePatternStepTransientBufferConstraints(
