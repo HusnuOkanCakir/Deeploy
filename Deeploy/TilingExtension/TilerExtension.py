@@ -688,7 +688,6 @@ class Tiler():
             outerPatternMemoryConstraints.addConstraint(dynamicOuterBufferConstraints)
             outerMemConstraints.append(outerPatternMemoryConstraints)
 
-            # JUNGVI: Temporary! To check!
             # OCAKIR: Pass multiple times from deltaFlow if we have multiple nodes in a pattern. (For now only valid for 3 elemnt case FIXME)  
             # if len(patternFlow)>2:
             #         mergedFlow1 = deltaFlow(patternFlow)
@@ -697,13 +696,19 @@ class Tiler():
             #     mergedFlow = [deltaFlow(patternFlow)]
 
             # OCAKIR: Testing inner mem constraints
-            if len(patternFlow) == 3:
-                    mergedFlow1 = deltaFlow(patternFlow[0:2])
-                    mergedFlow2 = deltaFlow(patternFlow[1:3])
-                    mergedFlow = [mergedFlow1, mergedFlow2]
-            else:
-                mergedFlow = [deltaFlow(patternFlow)]
+            # if len(patternFlow) == 3:
+            #         mergedFlow1 = deltaFlow(patternFlow[0:2])
+            #         mergedFlow2 = deltaFlow(patternFlow[1:3])
+            #         mergedFlow = [mergedFlow1, mergedFlow2]
+            # else:
+            #     mergedFlow = [deltaFlow(patternFlow)]
 
+            # OCAKIR: Edges of each node in the pattern merged. If we have N nodes, we have N+1 edges. After merging we will have N edges. 
+            mergedFlow = []
+            for i in range(len(patternFlow)-1):
+                mergedFlow.append(deltaFlow(patternFlow[i:(i+2)]))
+            
+            # JUNGVI: Temporary! To check!
             # mergedFlow = [deltaFlow(patternFlow)]#*len(pattern)
 
             for step, innerFlowState in zip(pattern, mergedFlow):
@@ -718,11 +723,11 @@ class Tiler():
                 innerPatternMemoryConstraints.addConstraint(transientBufferConstraints + dynamicInnerBufferConstraints)
 
             # OCAKIR: Testing inner mem constraints
-            if len(patternFlow) == 3:
-                innerPatternMemoryConstraints.nodeConstraints[0].intermediateTensorMemoryConstraints.update(innerPatternMemoryConstraints.nodeConstraints[1].inputTensorMemoryConstraints)
-                innerPatternMemoryConstraints.nodeConstraints[0].outputTensorMemoryConstraints.clear()
-                innerPatternMemoryConstraints.nodeConstraints[0].outputTensorMemoryConstraints.update(innerPatternMemoryConstraints.nodeConstraints[1].outputTensorMemoryConstraints)
-                innerPatternMemoryConstraints.nodeConstraints = [innerPatternMemoryConstraints.nodeConstraints[0]]
+            # if len(patternFlow) == 3:
+            #     innerPatternMemoryConstraints.nodeConstraints[0].intermediateTensorMemoryConstraints.update(innerPatternMemoryConstraints.nodeConstraints[1].inputTensorMemoryConstraints)
+            #     innerPatternMemoryConstraints.nodeConstraints[0].outputTensorMemoryConstraints.clear()
+            #     innerPatternMemoryConstraints.nodeConstraints[0].outputTensorMemoryConstraints.update(innerPatternMemoryConstraints.nodeConstraints[1].outputTensorMemoryConstraints)
+            #     innerPatternMemoryConstraints.nodeConstraints = [innerPatternMemoryConstraints.nodeConstraints[0]]
 
             innerMemConstraints.append(innerPatternMemoryConstraints)
 
