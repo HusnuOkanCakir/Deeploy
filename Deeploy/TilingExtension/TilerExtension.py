@@ -626,12 +626,17 @@ class Tiler():
                 patternFlow: List[GenericFlowState[TensorMemLevelTuple]]) -> GenericFlowState[TensorMemLevelTuple]:
 
             # OCAKIR: For a case of multiple nodes in a pattern, start merging from down to up.
-            if len(patternFlow) > 2:
-                initialFlow = patternFlow[-2]
-                endFlow = patternFlow[-1]
-            else:
-                initialFlow = patternFlow[0]
-                endFlow = patternFlow[1]
+            # if len(patternFlow) > 2:
+            #     initialFlow = patternFlow[-2]
+            #     endFlow = patternFlow[-1]
+            # else:
+            #     initialFlow = patternFlow[0]
+            #     endFlow = patternFlow[1]
+
+            initialFlow = patternFlow[0]
+            endFlow = patternFlow[1]
+
+            
 
             # SCHEREMO: The genset and killset of the innerflow are correct; however, since we now pass the initialliveset of the pattern to the constraint flow. we need to remove bypassed tensors
             mergedLiveSet = initialFlow.liveSet - endFlow.liveSet
@@ -641,8 +646,8 @@ class Tiler():
             mergedFlow = GenericFlowState[TensorMemLevelTuple](mergedLiveSet, mergedKillSet, mergedGenSet)
 
             # OCAKIR: Keep the unmerged flows at the top (Shouldn't be patternFlow[0]. This is only true for 3 element case. FIXME)
-            if len(patternFlow) > 2:
-                mergedFlow = [patternFlow[0], mergedFlow] #not done
+            # if len(patternFlow) > 2:
+            #     mergedFlow = [patternFlow[0], mergedFlow] #not done
 
             return mergedFlow
 
@@ -685,9 +690,17 @@ class Tiler():
 
             # JUNGVI: Temporary! To check!
             # OCAKIR: Pass multiple times from deltaFlow if we have multiple nodes in a pattern. (For now only valid for 3 elemnt case FIXME)  
-            if len(patternFlow)>2:
-                    mergedFlow1 = deltaFlow(patternFlow)
-                    mergedFlow = [deltaFlow(mergedFlow1)]
+            # if len(patternFlow)>2:
+            #         mergedFlow1 = deltaFlow(patternFlow)
+            #         mergedFlow = [deltaFlow(mergedFlow1)]
+            # else:
+            #     mergedFlow = [deltaFlow(patternFlow)]
+
+            # OCAKIR: Testing inner mem constraints
+            if len(patternFlow) == 3:
+                    mergedFlow1 = deltaFlow(patternFlow[0:2])
+                    mergedFlow2 = deltaFlow(patternFlow[1:3])
+                    mergedFlow = [mergedFlow1, mergedFlow2]
             else:
                 mergedFlow = [deltaFlow(patternFlow)]
 
@@ -703,6 +716,13 @@ class Tiler():
                                                                                       useMax = False)
 
                 innerPatternMemoryConstraints.addConstraint(transientBufferConstraints + dynamicInnerBufferConstraints)
+
+            # OCAKIR: Testing inner mem constraints
+            if len(patternFlow) == 3:
+                innerPatternMemoryConstraints.nodeConstraints[0].intermediateTensorMemoryConstraints.update(innerPatternMemoryConstraints.nodeConstraints[1].inputTensorMemoryConstraints)
+                innerPatternMemoryConstraints.nodeConstraints[0].outputTensorMemoryConstraints.clear()
+                innerPatternMemoryConstraints.nodeConstraints[0].outputTensorMemoryConstraints.update(innerPatternMemoryConstraints.nodeConstraints[1].outputTensorMemoryConstraints)
+                innerPatternMemoryConstraints.nodeConstraints = [innerPatternMemoryConstraints.nodeConstraints[0]]
 
             innerMemConstraints.append(innerPatternMemoryConstraints)
 
