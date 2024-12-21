@@ -83,9 +83,10 @@ class RequantShiftTileConstraint(TileConstraint):
             operatorRepresentation: OperatorRepresentation) -> Tuple[VariableReplacementScheme, TilingSchedule]:
         outputCubes = [cube.rectangle for cube in absoluteOutputCubes]
 
-        addrNames = ['data_in', 'mul', 'add', 'data_out']
+        inputAddrNames = ['data_in', 'mul', 'add']
+        outputAddrNames = ['data_out']
         inputBaseOffsets, outputBaseOffsets = cls.extractBaseAddr(tilingSolution, targetMemLevel,
-                                                                  operatorRepresentation, addrNames)
+                                                                  operatorRepresentation, inputAddrNames, outputAddrNames)
 
         inputCubes = outputCubes
 

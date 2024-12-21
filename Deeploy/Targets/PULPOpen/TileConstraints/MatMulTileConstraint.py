@@ -111,9 +111,10 @@ class MatMulTileConstraint(TileConstraint):
             operatorRepresentation: OperatorRepresentation) -> Tuple[VariableReplacementScheme, TilingSchedule]:
         outputCubes = [cube.rectangle for cube in absoluteOutputCubes]
 
-        addrNames = ['A', 'B', 'data_out']
+        inputAddrNames = ['A', 'B']
+        outputAddrNames = ['data_out']
         inputBaseOffsets, outputBaseOffsets = cls.extractBaseAddr(tilingSolution, targetMemLevel,
-                                                                  operatorRepresentation, addrNames)
+                                                                  operatorRepresentation, inputAddrNames, outputAddrNames)
 
         varA = operatorRepresentation['A']
 
