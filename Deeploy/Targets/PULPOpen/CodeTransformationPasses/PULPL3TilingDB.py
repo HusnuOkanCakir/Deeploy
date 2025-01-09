@@ -296,12 +296,15 @@ class PULPL3TilingDB(PULPL3TilingSB):
 
     def generateTilingLoop(
             self, ctxt: NetworkContext, executionBlock: ExecutionBlock, nodeMemoryConstraint: NodeMemoryConstraint,
-            tilingSchedules: List[TilingSchedule], variableReplacement: VariableReplacementScheme,
-            operatorRepresentation: OperatorRepresentation) -> Tuple[NetworkContext, ExecutionBlock, bool]:
+            tilingSchedulesList: List[TilingSchedule], variableReplacement: VariableReplacementScheme) -> Tuple[NetworkContext, ExecutionBlock, bool]:
 
-        flatTilingSchedule = copy.copy(tilingSchedules[0])
-        for tilingSchedule in tilingSchedules[1:]:
-            flatTilingSchedule += tilingSchedule
+        flatTilingScheduleList = []
+        
+        for tilingSchedules in tilingSchedulesList:
+            flatTilingSchedule = copy.copy(tilingSchedules[0])
+            for tilingSchedule in tilingSchedules[1:]:
+                flatTilingSchedule += tilingSchedule
+            flatTilingScheduleList.append(flatTilingSchedule)
 
         offsetLists = list({**flatTilingSchedule.inputBaseOffsets, **flatTilingSchedule.outputBaseOffsets}.values())
 
@@ -312,12 +315,13 @@ class PULPL3TilingDB(PULPL3TilingSB):
             if not len(offsetList) == 2:
                 return ctxt, executionBlock, False
 
-        allNumTiles = [len(schedule.outputLoadSchedule) for schedule in tilingSchedules]
-        operatorRepresentation["numTiles"] = self._hoistNumTiles(ctxt, operatorRepresentation['nodeName'],
-                                                                 tilingSchedules)
+        # JUNGVI: Hoist num tiles using info from the first template of the codeSnippet and propagate the opRepr update to other CodeSnippet
+        executionBlock.baseBlock.codeSnippets[0].operatorRepresentation["numTiles"] = self._hoistNumTiles(ctxt, executionBlock.baseBlock.codeSnippets[0].operatorRepresentation['nodeName'],
+                                                                 tilingSchedulesList[-1])
+        for codeSnippet in list(executionBlock.baseBlock.codeSnippets)[1:]:
+            codeSnippet.operatorRepresentation["numTiles"] = executionBlock.baseBlock.codeSnippets[0].operatorRepresentation["numTiles"]
 
-        return self._tilingLoop(ctxt, executionBlock, nodeMemoryConstraint, flatTilingSchedule, variableReplacement,
-                                operatorRepresentation)
+        return self._tilingLoop(ctxt, executionBlock, nodeMemoryConstraint, flatTilingSchedule, variableReplacement)
 
 
 class PULPL3TilingGenerationDB(PULPL3TilingDB, DoubleBufferingTilingMixIn):
