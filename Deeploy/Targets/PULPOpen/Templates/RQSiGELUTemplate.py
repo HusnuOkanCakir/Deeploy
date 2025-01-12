@@ -46,8 +46,8 @@ class _PULPRQSiGELUTemplate(NodeTemplate):
 referenceTemplate = _PULPRQSiGELUTemplate("""
 // Requantized iGELU parallelized for PULP (Name: ${nodeName}, Op: ${nodeOp})
 
-int core_id         = pi_core_id();
-int log2_core       = log2(NUM_CORES);
+u_int32_t core_id         = pi_core_id();
+u_int32_t log2_core       = log2(NUM_CORES);
 int16_t chunk       = (${size} >> log2_core) + (((${size}) & (NUM_CORES - 1)) != 0);
 int16_t chunk_start = MIN(chunk * core_id, ${size});
 int16_t chunk_stop  = MIN(chunk_start + chunk, ${size});
@@ -69,7 +69,5 @@ if (chunk_start < chunk_stop) {
     );
 }
 
-
-pi_cl_team_barrier(0);
 """)
 

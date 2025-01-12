@@ -33,14 +33,13 @@ void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
                      int32_t output_offset, int32_t *mul, int32_t *add,
                      int32_t *shift) {
     
-    int core_id    = pi_core_id();
-    int log2_core  = log2(NUM_CORES);
+    u_int32_t core_id    = pi_core_id();
+    u_int32_t log2_core  = log2(NUM_CORES);
 
     int16_t chunk       = (dataSize >> log2_core) + ((dataSize & (NUM_CORES - 1)) != 0);
     int16_t chunk_start = (chunk * core_id) < dataSize ? (chunk * core_id) : dataSize;
     int16_t chunk_stop  = (chunk_start + chunk) < dataSize ? (chunk_start + chunk) : dataSize;
 
-    // Pull out the scalar RQ parameters (assumes single-element arrays)
     int32_t rq_mul   = mul[0];
     int32_t rq_add   = add[0];
     int32_t rq_shift = shift[0];
@@ -74,5 +73,4 @@ void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
         data_out[i] = (int8_t)intermediate;
     }
 
-    pi_cl_team_barrier(0);
 }
