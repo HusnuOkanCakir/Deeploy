@@ -28,63 +28,54 @@
 #include "DeeployPULPMath.h"
 #include "pmsis.h"
 
-void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
-                     int8_t b, int16_t one, int32_t input_offset,
-                     int32_t output_offset, int32_t *mul, int32_t *add,
-                     int32_t *shift) {
-    
-    int8_t core_id    = pi_core_id();
-    int8_t log2_core  = log2(NUM_CORES);
+void PULPiGELU_s8_s8(int8_t *data_in,
+                     int8_t *data_out,
+                     int32_t dataSize,
+                     int8_t  b,
+                     int16_t one,
+                     int32_t input_offset,
+                     int32_t output_offset,
+                     int32_t *mul,
+                     int32_t *add,
+                     int32_t *shift)
+{
+    int core_id    = pi_core_id();
+    int num_cores  = NUM_CORES;
+    int8_t log2_core = log2(num_cores);
 
-    printf("core id: %d\n", core_id);
-    printf("core num: %d\n", NUM_CORES);
-    printf("log2 core: %d\n", log2_core);
-
-    int16_t chunk       = (dataSize >> log2_core) + ((dataSize & (NUM_CORES - 1)) != 0);
-    int16_t chunk_start = MIN(chunk * core_id, dataSize);
-    int16_t chunk_stop = MIN(chunk_start + chunk, dataSize + 1);
-
-    printf("chunk: %d\n", chunk);
-    printf("chunk_start: %d\n", chunk_start);
-    printf("chunk_stop: %d\n", chunk_stop);
+    int16_t chunk       = (dataSize >> log2_core) + ((dataSize & (num_cores - 1)) != 0);
+    int16_t chunk_start = (chunk * core_id < dataSize) ? (chunk * core_id) : dataSize;
+    int16_t chunk_stop  = (chunk_start + chunk < dataSize) ? (chunk_start + chunk) : dataSize;
 
     int32_t rq_mul   = mul[0];
     int32_t rq_add   = add[0];
     int32_t rq_shift = shift[0];
 
-    int32_t sign, x, x_abs, q;
-    int32_t d;
-    int32_t L, y;
-    int32_t intermediate;
-
-    // #pragma unroll 8
     for (int i = chunk_start; i < chunk_stop; i++)
     {
-        x = (int32_t)data_in[i] + input_offset;
+        int32_t x = (int32_t)data_in[i] + input_offset;
 
-        sign = (x > 0) - (x < 0);
-        x_abs = sign * x;
+        int32_t sign  = (x > 0) - (x < 0);
+        int32_t x_abs = sign * x;
 
-        if (x_abs > -b)
-            q = -b;
-        else
-            q = x_abs;
+        int32_t q = (x_abs > -b) ? -b : x_abs;
 
-        d  = q + b;
-        L  = sign * (-(d * d) + one);
-        y  = x * ((one + L) >> 1);
+        int32_t d = q + b;
+        int32_t L = sign * (-(d * d) + one);
 
-        intermediate = (y * rq_mul) + rq_add;
-        
-        intermediate = ((intermediate + (1 << (rq_shift - 1))) >> rq_shift);
+        int32_t y = x * ((one + L) >> 1);
+
+        int32_t intermediate = (y * rq_mul) + rq_add;
+
+        intermediate = (intermediate + (1 << (rq_shift - 1))) >> rq_shift;
 
         intermediate += output_offset;
-        if (intermediate > 127)  intermediate = 127;
-        if (intermediate < -128) intermediate = -128;
+
+        if (intermediate > 127)   intermediate = 127;
+        if (intermediate < -128)  intermediate = -128;
 
         data_out[i] = (int8_t)intermediate;
-        
     }
-    
 
+    pi_cl_team_barrier();
 }
