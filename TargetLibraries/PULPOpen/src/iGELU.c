@@ -52,25 +52,29 @@ void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
     int32_t rq_add   = add[0];
     int32_t rq_shift = shift[0];
 
+    int32_t sign, x, x_abs, q;
+    int32_t d;
+    int32_t L, y;
+    int32_t intermediate;
+
     // #pragma unroll 8
     for (int i = chunk_start; i < chunk_stop; i++)
     {
-        int32_t x = (int32_t)data_in[i] + input_offset;
+        x = (int32_t)data_in[i] + input_offset;
 
-        int32_t sign = (x > 0) - (x < 0);
-        int32_t x_abs = sign * x;
+        sign = (x > 0) - (x < 0);
+        x_abs = sign * x;
 
-        int32_t q;
         if (x_abs > -b)
             q = -b;
         else
             q = x_abs;
 
-        int32_t d  = q + b;
-        int32_t L  = sign * (-(d * d) + one);
-        int32_t y  = x * ((one + L) >> 1);
+        d  = q + b;
+        L  = sign * (-(d * d) + one);
+        y  = x * ((one + L) >> 1);
 
-        int32_t intermediate = (y * rq_mul) + rq_add;
+        intermediate = (y * rq_mul) + rq_add;
         
         intermediate = ((intermediate + (1 << (rq_shift - 1))) >> rq_shift);
 
@@ -81,6 +85,6 @@ void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
         data_out[i] = (int8_t)intermediate;
         
     }
-    // pi_cl_team_barrier();
+    
 
 }
