@@ -377,16 +377,23 @@ class TestRunner():
 
         result = ""
         while True:
+            # print("\nwhile loop 1----------------------------\n")
             output = process.stdout.readline()
+            # print("\nwhile loop 2----------------------------\n")
             if output == '' and process.poll() is not None:
+                # print("\nwhile loop 3----------------------------\n")
                 break
             if output:
+                # print("\nwhile loop 4----------------------------\n")
                 print(output.strip())
+                # print("\nwhile loop 5----------------------------\n")
                 result += output
+                # print("\nwhile loop 6----------------------------\n")
                 fileHandle.write(f"{escapeAnsi(output)}")
 
         fileHandle.write("")
         fileHandle.close()
+        # print("\nrun sim ok----------------------------\n")
 
         if "Errors: 0 out of " not in result:
             prRed(f"❌ Found errors in {self._dir_test}")

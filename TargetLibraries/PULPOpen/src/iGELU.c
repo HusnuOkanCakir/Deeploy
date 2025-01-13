@@ -33,18 +33,26 @@ void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
                      int32_t output_offset, int32_t *mul, int32_t *add,
                      int32_t *shift) {
     
-    u_int32_t core_id    = pi_core_id();
-    u_int32_t log2_core  = log2(NUM_CORES);
+    int8_t core_id    = pi_core_id();
+    int8_t log2_core  = log2(NUM_CORES);
+
+    printf("core id: %d\n", core_id);
+    printf("core num: %d\n", NUM_CORES);
+    printf("log2 core: %d\n", log2_core);
 
     int16_t chunk       = (dataSize >> log2_core) + ((dataSize & (NUM_CORES - 1)) != 0);
-    int16_t chunk_start = (chunk * core_id) < dataSize ? (chunk * core_id) : dataSize;
-    int16_t chunk_stop  = (chunk_start + chunk) < dataSize ? (chunk_start + chunk) : dataSize;
+    int16_t chunk_start = MIN(chunk * core_id, dataSize);
+    int16_t chunk_stop = MIN(chunk_start + chunk, dataSize + 1);
+
+    printf("chunk: %d\n", chunk);
+    printf("chunk_start: %d\n", chunk_start);
+    printf("chunk_stop: %d\n", chunk_stop);
 
     int32_t rq_mul   = mul[0];
     int32_t rq_add   = add[0];
     int32_t rq_shift = shift[0];
 
-    // For each element in this core’s slice
+    // #pragma unroll 8
     for (int i = chunk_start; i < chunk_stop; i++)
     {
         int32_t x = (int32_t)data_in[i] + input_offset;
@@ -71,6 +79,8 @@ void PULPiGELU_s8_s8(int8_t *data_in, int8_t *data_out, int32_t dataSize,
         if (intermediate < -128) intermediate = -128;
 
         data_out[i] = (int8_t)intermediate;
+        
     }
+    // pi_cl_team_barrier();
 
 }

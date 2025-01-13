@@ -299,7 +299,7 @@ PULPiRQSGELUBindings = [
                      PointerClass(int32_t),
                      PointerClass(int32_t),
                      PointerClass(int32_t)], [PointerClass(int8_t)]), RQSiGELUTemplate.referenceTemplate,
-        ClusterTransformer)
+        ForkTransformer)
 ]
 
 PULPMulBindings = [
